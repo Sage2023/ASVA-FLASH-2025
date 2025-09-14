@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>闪电卡牌抽牌工具</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+            overflow-x: hidden;
+        }
+        
+        .header {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+        
+        .generate-summary {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 50px;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .generate-summary:active {
+            transform: scale(0.95);
+            background: rgba(255, 255, 255, 0.15);
+        }
+        
+        .card-container {
+            width: 100%;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            margin: 20px 0;
+        }
+        
+        .card-slot {
+            width: 280px;
+            height: 380px;
+            border: 2px dashed rgba(255, 255, 255, 0.3);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 25px;
+            position: relative;
+            background: rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+        }
+        
+        .card {
+            width: 95%;
+            height: 95%;
+            background: linear-gradient(45deg, #6a11cb 0%, #2575fc 100%);
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            color: white;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.5s ease;
+        }
+        
+        .card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 15px;
+        }
+        
+        .card-number {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+        
+        .card-image {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        
+        .card-image i {
+            font-size: 50px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        .card-title {
+            font-size: 22px;
+            font-weight: bold;
+            text-align: center;
+            padding: 0 15px;
+        }
+        
+        .card-desc {
+            font-size: 14px;
+            text-align: center;
+            padding: 10px 20px;
+            opacity: 0.8;
+        }
+        
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 15px 0 20px;
+        }
+        
+        .btn {
+            padding: 15px 35px;
+            border-radius: 50px;
+            border: none;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .btn:active {
+            transform: scale(0.95);
+        }
+        
+        .btn-shuffle {
+            background: linear-gradient(45deg, #FF416C, #FF4B2B);
+            color: white;
+        }
+        
+        .input-section {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 15px 0 30px;
+        }
+        
+        .input-group {
+            display: flex;
+            width: 100%;
+            max-width: 320px;
+            margin-bottom: 15px;
+        }
+        
+        .number-input {
+            flex-grow: 1;
+            padding: 16px 20px;
+            border: none;
+            border-radius: 50px 0 0 50px;
+            background: rgba(255, 255, 255, 0.12);
+            color: white;
+            font-size: 18px;
+            outline: none;
+            text-align: center;
+        }
+        
+        .draw-btn {
+            padding: 16px 25px;
+            border-radius: 0 50px 50px 0;
+            border: none;
+            background: linear-gradient(45deg, #3a7bd5, #00d2ff);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .draw-btn:active {
+            background: linear-gradient(45deg, #2c65c4, #00b0eb);
+        }
+        
+        .input-label {
+            font-size: 14px;
+            opacity: 0.7;
+            margin-bottom: 8px;
+        }
+        
+        .history-indicator {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(5px);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+        }
+        
+        .context-menu {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            box-shadow: 0 5px 25px rgba(0, 0, 0, 0.2);
+            padding: 10px 0;
+            z-index: 100;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .context-menu-item {
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        .context-menu-item:active {
+            background: rgba(0, 0, 0, 0.1);
+        }
+        
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 12px 25px;
+            border-radius: 50px;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .card-drawn {
+            animation: drawCard 0.5s ease forwards;
+        }
+        
+        @keyframes drawCard {
+            0% { transform: scale(0.8); opacity: 0; }
+            70% { transform: scale(1.05); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        .card-back {
+            background: linear-gradient(135deg, #834d9b 0%, #d04ed6 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 80px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .card-back::before {
+            content: "";
+            position: absolute;
+            width: 150px;
+            height: 150px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+        }
+        
+        .deck-info {
+            margin-top: 10px;
+            font-size: 14px;
+            opacity: 0.7;
+            text-align: center;
+        }
+        
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            color: white;
+            font-size: 20px;
+        }
+
+        .card-name {
+            position: absolute;
+            bottom: 10px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+            padding: 5px;
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+        }
+
+        .card-position {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <button class="generate-summary">
+            <i class="fas fa-image"></i>
+            生成总览图
+        </button>
+    </div>
+    
+    <div class="card-container">
+        <div class="card-slot">
+            <div class="card card-back">
+                <i class="fas fa-question"></i>
+            </div>
+        </div>
+    </div>
+    
+    <div class="action-buttons">
+        <button class="btn btn-shuffle">
+            <i class="fas fa-random"></i>
+            洗牌
+        </button>
+    </div>
+    
+    <div class="input-section">
+        <div class="input-label">输入1-69之间的数字进行抽牌</div>
+        <div class="input-group">
+            <input type="number" min="1" max="69" class="number-input" placeholder="输入数字">
+            <button class="draw-btn">抽牌</button>
+        </div>
+        <div class="deck-info" id="deck-info">牌库已准备就绪，共69张牌</div>
+    </div>
+    
+    <div class="history-indicator">
+        <i class="fas fa-history"></i>
+    </div>
+    
+    <div class="context-menu">
+        <div class="context-menu-item" id="download-card">
+            <i class="fas fa-download"></i>
+            <span>下载图片</span>
+        </div>
+        <div class="context-menu-item" id="share-card">
+            <i class="fas fa-share-alt"></i>
+            <span>分享图片</span>
+        </div>
+    </div>
+    
+    <div class="toast" id="toast">操作成功</div>
+    
+    <div class="loading" id="loading" style="display: none;">
+        <div>正在生成总览图，请稍候...</div>
+    </div>
+
+    <script>
+        // 卡牌图片映射 - 将卡牌编号映射到图片文件名
+        const cardImageMap = {
+            1: "超维牌-忏悔与感恩.jpg",
+            2: "超维牌-开启与完结.jpg",
+            3: "超维牌-转化.jpg",
+            4: "高维牌-阿卡西.jpg",
+            5: "高维牌-道路.jpg",
+            6: "高维牌-赋能.jpg",
+            7: "高维牌-内心灵感.jpg",
+            8: "高维牌-破维之眼.jpg",
+            9: "高维牌-歧路.jpg",
+            10: "高维牌-全观之眼.jpg",
+            11: "高维牌-无视.jpg",
+            12: "高维牌-吾心光明.jpg",
+            13: "高维牌-宇宙指引.jpg",
+            14: "疗愈牌-大树.jpg",
+            15: "疗愈牌-空.jpg",
+            16: "疗愈牌-莲花.jpg",
+            17: "疗愈牌-疗愈.jpg",
+            18: "疗愈牌-流动.jpg",
+            19: "疗愈牌-芦苇花.jpg",
+            20: "疗愈牌-清理.jpg",
+            21: "疗愈牌-生命权杖.jpg",
+            22: "疗愈牌-圣杯.jpg",
+            23: "疗愈牌-芽.jpg",
+            24: "能量牌-棒喝.jpg",
+            25: "能量牌-齿轮与棋.jpg",
+            26: "能量牌-房子与金币.jpg",
+            27: "能量牌-火.jpg",
+            28: "能量牌-金钱.jpg",
+            29: "能量牌-巨婴.jpg",
+            30: "能量牌-两角蛇.jpg",
+            31: "能量牌-裂.jpg",
+            32: "能量牌-林伽.jpg",
+            33: "能量牌-聆听.jpg",
+            34: "能量牌-六芒星.jpg",
+            35: "能量牌-脉轮与脊柱.jpg",
+            36: "能量牌-内部能量.jpg",
+            37: "能量牌-旗与剑.jpg",
+            38: "能量牌-亲密关系.jpg",
+            39: "能量牌-权杖.jpg",
+            40: "能量牌-时间正旋.jpg",
+            41: "能量牌-时空叠加.jpg",
+            42: "能量牌-无限循环.jpg",
+            43: "能量牌-钥匙.jpg",
+            44: "能量牌-原生家庭.jpg",
+            45: "能量牌-正义羽毛.jpg",
+            46: "能量牌-止语.jpg",
+            47: "能量牌-烛光.jpg",
+            48: "神牌-阿努比斯.jpg",
+            49: "神牌-奥西里斯.jpg",
+            50: "神牌-巴斯特.jpg",
+            51: "神牌-盖布.jpg",
+            52: "神牌-荷鲁斯.jpg",
+            53: "神牌-拉.jpg",
+            54: "神牌-姆特.jpg",
+            55: "神牌-努恩.jpg",
+            56: "神牌-塞赫麦特.jpg",
+            57: "神牌-赛特.jpg",
+            58: "神牌-托特.jpg",
+            59: "神牌-伊西斯.jpg",
+            60: "阻碍牌-B面阴影.jpg",
+            61: "阻碍牌-创伤.jpg",
+            62: "阻碍牌-倒三角.jpg",
+            63: "阻碍牌-关闭.jpg",
+            64: "阻碍牌-纠缠与锁链.jpg",
+            65: "阻碍牌-膜与屏障.jpg",
+            66: "阻碍牌-内部纠缠.jpg",
+            67: "阻碍牌-内心疑问.jpg",
+            68: "阻碍牌-十字架.jpg",
+            69: "阻碍牌-锁.jpg"
+        };
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // 元素引用
+            const cardSlot = document.querySelector('.card-slot');
+            const cardElement = document.querySelector('.card');
+            const numberInput = document.querySelector('.number-input');
+            const drawBtn = document.querySelector('.draw-btn');
+            const shuffleBtn = document.querySelector('.btn-shuffle');
+            const generateSummaryBtn = document.querySelector('.generate-summary');
+            const contextMenu = document.querySelector('.context-menu');
+            const toast = document.getElementById('toast');
+            const deckInfo = document.getElementById('deck-info');
+            const loadingElement = document.getElementById('loading');
+            
+            // 状态变量
+            let deck = []; // 当前牌库顺序
+            let drawnCards = []; // 已抽取的牌（存储实际卡牌数字）
+            let isFirstDraw = true;
+            let currentPosition = 0; // 当前抽牌位置
+            
+            // 初始化牌库 - 创建1-69的数组并洗牌
+            function initializeDeck() {
+                // 创建1-69的数组
+                deck = Array.from({length: 69}, (_, i) => i + 1);
+                shuffleDeck();
+            }
+            
+            // 洗牌算法 - 真正随机打乱牌库顺序
+            function shuffleDeck() {
+                // Fisher-Yates 洗牌算法
+                for (let i = deck.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [deck[i], deck[j]] = [deck[j], deck[i]];
+                }
+                
+                // 更新牌库信息显示
+                deckInfo.textContent = `牌库已洗牌，共${deck.length}张牌`;
+                showToast('牌已洗好，可以继续抽牌');
+            }
+            
+            // 抽牌函数
+            function drawCard(position) {
+                if (position < 1 || position > 69) {
+                    showToast('请输入1-69之间的数字');
+                    return;
+                }
+                
+                currentPosition = position;
+                
+                if (isFirstDraw) {
+                    isFirstDraw = false;
+                    // 移除卡牌背面的样式
+                    cardElement.classList.remove('card-back');
+                    cardElement.innerHTML = '';
+                }
+                
+                // 从当前牌库中抽取对应位置的牌
+                const cardIndex = position - 1; // 转换为0-based索引
+                if (cardIndex >= deck.length) {
+                    showToast('输入的数字超出牌库范围');
+                    return;
+                }
+                
+                const cardNumber = deck[cardIndex];
+                
+                // 记录抽出的牌（实际卡牌数字）
+                drawnCards.push({
+                    position: position,
+                    cardNumber: cardNumber,
+                    timestamp: new Date()
+                });
+                
+                // 更新卡牌显示
+                displayCard(cardNumber, position);
+                
+                // 显示抽牌动画
+                cardElement.classList.remove('card-drawn');
+                void cardElement.offsetWidth; // 触发重绘
+                cardElement.classList.add('card-drawn');
+                
+                showToast(`已抽出第 ${position} 位置的卡牌`);
+            }
+            
+            // 显示卡牌内容 - 使用自定义图片名称
+            function displayCard(cardNumber, position) {
+                // 使用卡牌图片映射获取图片文件名
+                const imageFileName = cardImageMap[cardNumber] || `card-${cardNumber}.jpg`;
+                const imagePath = `images/${imageFileName}`;
+                
+                // 从文件名中提取卡牌名称（去掉.jpg扩展名）
+                let cardName = imageFileName.replace('.jpg', '');
+                
+                cardElement.innerHTML = `
+                    <div class="card-position">${position}</div>
+                    <img src="${imagePath}" alt="${cardName}" onerror="handleImageError(this, ${cardNumber}, ${position})">
+                    <div class="card-name">${cardName}</div>
+                `;
+            }
+            
+            // 图片加载错误处理
+            function handleImageError(img, cardNumber, position) {
+                console.error(`图片加载失败: ${img.src}`);
+                // 显示默认卡牌样式
+                img.style.display = 'none';
+                const cardElement = img.parentElement;
+                // 从文件名中提取卡牌名称（去掉.jpg扩展名）
+                const imageFileName = cardImageMap[cardNumber] || `card-${cardNumber}.jpg`;
+                const cardName = imageFileName.replace('.jpg', '');
+                
+                cardElement.innerHTML = `
+                    <div class="card-position">${position}</div>
+                    <div class="card-number">${cardNumber}</div>
+                    <div class="card-image">
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <div class="card-title">${cardName}</div>
+                `;
+            }
+            
+            // 显示Toast提示
+            function showToast(message) {
+                toast.textContent = message;
+                toast.style.opacity = '1';
+                
+                setTimeout(() => {
+                    toast.style.opacity = '0';
+                }, 2000);
+            }
+            
+            // 生成总览图
+            async function generateSummary() {
+                if (drawnCards.length === 0) {
+                    showToast('请先抽取至少一张牌');
+                    return;
+                }
+                
+                // 显示加载提示
+                loadingElement.style.display = 'flex';
+                
+                try {
+                    // 创建Canvas元素
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    // 设置Canvas尺寸
+                    const cardWidth = 220;
+                    const cardHeight = 180;
+                    const padding = 20;
+                    const cardsPerRow = Math.min(drawnCards.length, 3);
+                    const rows = Math.ceil(drawnCards.length / cardsPerRow);
+                    
+                    canvas.width = cardsPerRow * cardWidth + (cardsPerRow + 1) * padding;
+                    canvas.height = rows * cardHeight + (rows + 1) * padding + 80;
+                    
+                    // 绘制背景
+                    ctx.fillStyle = '#1a1a2e';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    
+                    // 绘制标题
+                    ctx.fillStyle = 'white';
+                    ctx.font = '24px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('卡牌抽牌总览', canvas.width / 2, 30);
+                    
+                    // 绘制日期
+                    const now = new Date();
+                    const dateStr = now.toLocaleDateString() + ' ' + now.toLocaleTimeString();
+                    ctx.font = '16px Arial';
+                    ctx.fillText(dateStr, canvas.width / 2, 60);
+                    
+                    // 加载所有卡牌图片
+                    const imagePromises = drawnCards.map(drawnCard => {
+                        return new Promise((resolve) => {
+                            const img = new Image();
+                            const imageFileName = cardImageMap[drawnCard.cardNumber] || `card-${drawnCard.cardNumber}.jpg`;
+                            img.crossOrigin = "Anonymous";
+                            img.src = `images/${imageFileName}`;
+                            img.onload = () => resolve({img, drawnCard});
+                            img.onerror = () => {
+                                // 图片加载失败，创建一个占位符
+                                const placeholder = document.createElement('canvas');
+                                placeholder.width = cardWidth;
+                                placeholder.height = cardHeight;
+                                const placeholderCtx = placeholder.getContext('2d');
+                                placeholderCtx.fillStyle = '#6a11cb';
+                                placeholderCtx.fillRect(0, 0, cardWidth, cardHeight);
+                                placeholderCtx.fillStyle = 'white';
+                                placeholderCtx.font = 'bold 32px Arial';
+                                placeholderCtx.textAlign = 'center';
+                                placeholderCtx.fillText(drawnCard.cardNumber.toString(), cardWidth / 2, cardHeight / 2);
+                                placeholderCtx.font = '14px Arial';
+                                placeholderCtx.fillText('图片加载失败', cardWidth / 2, cardHeight / 2 + 30);
+                                resolve({img: placeholder, drawnCard});
+                            };
+                        });
+                    });
+                    
+                    // 等待所有图片加载完成
+                    const loadedImages = await Promise.all(imagePromises);
+                    
+                    // 绘制卡牌
+                    let x, y;
+                    for (let i = 0; i < loadedImages.length; i++) {
+                        const {img, drawnCard} = loadedImages[i];
+                        const row = Math.floor(i / cardsPerRow);
+                        const col = i % cardsPerRow;
+                        
+                        x = padding + col * (cardWidth + padding);
+                        y = 80 + row * (cardHeight + padding);
+                        
+                        // 绘制卡牌图片
+                        ctx.drawImage(img, x, y, cardWidth, cardHeight);
+                        
+                        // 绘制卡牌边框
+                        ctx.strokeStyle = 'white';
+                        ctx.lineWidth = 2;
+                        ctx.strokeRect(x, y, cardWidth, cardHeight);
+                        
+                        // 绘制卡牌位置信息
+                        ctx.fillStyle = 'white';
+                        ctx.font = '14px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.fillText(`位置: ${drawnCard.position}`, x + cardWidth / 2, y + cardHeight - 30);
+                        
+                        // 绘制卡牌名称
+                        const imageFileName = cardImageMap[drawnCard.cardNumber] || `card-${drawnCard.cardNumber}.jpg`;
+                        const cardName = imageFileName.replace('.jpg', '');
+                        // 如果名称太长，缩小字体
+                        const fontSize = cardName.length > 15 ? 12 : 16;
+                        ctx.font = `${fontSize}px Arial`;
+                        ctx.fillText(cardName, x + cardWidth / 2, y + cardHeight - 10);
+                    }
+                    
+                    // 将Canvas转换为图片并下载
+                    const dataUrl = canvas.toDataURL('image/png');
+                    const link = document.createElement('a');
+                    link.download = `card-summary-${Date.now()}.png`;
+                    link.href = dataUrl;
+                    link.click();
+                    
+                    showToast('总览图已生成并开始下载');
+                } catch (e) {
+                    console.error('生成总览图失败:', e);
+                    showToast('生成总览图时出错，请重试');
+                } finally {
+                    // 隐藏加载提示
+                    loadingElement.style.display = 'none';
+                }
+            }
+            
+            // 事件监听
+            drawBtn.addEventListener('click', () => {
+                const number = parseInt(numberInput.value);
+                if (!isNaN(number)) {
+                    drawCard(number);
+                    numberInput.value = '';
+                }
+            });
+            
+            numberInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    drawBtn.click();
+                }
+            });
+            
+            shuffleBtn.addEventListener('click', () => {
+                shuffleDeck();
+            });
+            
+            generateSummaryBtn.addEventListener('click', generateSummary);
+            
+            // 长按卡牌功能
+            let pressTimer;
+            cardElement.addEventListener('touchstart', function(e) {
+                if (drawnCards.length === 0) return;
+                
+                pressTimer = setTimeout(() => {
+                    e.preventDefault();
+                    showContextMenu(e);
+                }, 500);
+            });
+            
+            cardElement.addEventListener('touchend', function() {
+                clearTimeout(pressTimer);
+            });
+            
+            cardElement.addEventListener('touchmove', function() {
+                clearTimeout(pressTimer);
+            });
+            
+            // 显示上下文菜单
+            function showContextMenu(e) {
+                const touch = e.touches[0] || e.changedTouches[0];
+                contextMenu.style.display = 'flex';
+                contextMenu.style.left = touch.pageX + 'px';
+                contextMenu.style.top = touch.pageY + 'px';
+                
+                // 点击其他地方关闭菜单
+                const closeMenu = function() {
+                    contextMenu.style.display = 'none';
+                    document.removeEventListener('touchstart', closeMenu);
+                };
+                
+                setTimeout(() => {
+                    document.addEventListener('touchstart', closeMenu);
+                }, 100);
+            }
+            
+            // 上下文菜单功能
+            document.getElementById('download-card').addEventListener('click', function() {
+                if (drawnCards.length === 0) return;
+                const lastDrawnCard = drawnCards[drawnCards.length - 1];
+                const cardNumber = lastDrawnCard.cardNumber;
+                const imageFileName = cardImageMap[cardNumber] || `card-${cardNumber}.jpg`;
+                
+                // 从文件名中提取卡牌名称（去掉.jpg扩展名）
+                const cardName = imageFileName.replace('.jpg', '');
+                
+                // 创建下载链接
+                const link = document.createElement('a');
+                link.download = `${cardName}.jpg`;
+                link.href = `images/${imageFileName}`;
+                link.click();
+                
+                showToast(`下载 ${cardName} 卡牌`);
+                contextMenu.style.display = 'none';
+            });
+            
+            document.getElementById('share-card').addEventListener('click', function() {
+                if (drawnCards.length === 0) return;
+                const lastDrawnCard = drawnCards[drawnCards.length - 1];
+                const cardNumber = lastDrawnCard.cardNumber;
+                const imageFileName = cardImageMap[cardNumber] || `card-${cardNumber}.jpg`;
+                const cardName = imageFileName.replace('.jpg', '');
+                
+                showToast(`分享 ${cardName} 卡牌（模拟功能）`);
+                contextMenu.style.display = 'none';
+            });
+            
+            // 初始化
+            initializeDeck();
+        });
+    </script>
+</body>
+</html>

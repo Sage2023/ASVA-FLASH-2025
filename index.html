@@ -353,6 +353,27 @@
             font-weight: bold;
             z-index: 10;
         }
+        
+        .quality-options {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .quality-option {
+            padding: 8px 15px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .quality-option.active {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
     </style>
 </head>
 <body>
@@ -406,6 +427,11 @@
     
     <div class="loading" id="loading" style="display: none;">
         <div>正在生成总览图，请稍候...</div>
+        <div class="quality-options">
+            <div class="quality-option active" data-quality="1">标准质量</div>
+            <div class="quality-option" data-quality="2">高质量</div>
+            <div class="quality-option" data-quality="3">超高质量</div>
+        </div>
     </div>
 
     <script>
@@ -494,12 +520,23 @@
             const toast = document.getElementById('toast');
             const deckInfo = document.getElementById('deck-info');
             const loadingElement = document.getElementById('loading');
+            const qualityOptions = document.querySelectorAll('.quality-option');
             
             // 状态变量
             let deck = []; // 当前牌库顺序
             let drawnCards = []; // 已抽取的牌（存储实际卡牌数字）
             let isFirstDraw = true;
             let currentPosition = 0; // 当前抽牌位置
+            let selectedQuality = 1; // 默认质量选项
+            
+            // 设置质量选项
+            qualityOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    qualityOptions.forEach(opt => opt.classList.remove('active'));
+                    this.classList.add('active');
+                    selectedQuality = parseInt(this.dataset.quality);
+                });
+            });
             
             // 初始化牌库 - 创建1-69的数组并洗牌
             function initializeDeck() {
@@ -610,46 +647,73 @@
                 }, 2000);
             }
             
-            // 生成总览图
+            // 生成总览图 - 优化版本，保持卡牌比例不失真
             async function generateSummary() {
                 if (drawnCards.length === 0) {
                     showToast('请先抽取至少一张牌');
                     return;
                 }
                 
-                // 显示加载提示
+                // 显示加载提示和质量选项
                 loadingElement.style.display = 'flex';
                 
                 try {
+                    // 根据选择的质量设置缩放因子
+                    const scaleFactor = selectedQuality;
+                    
                     // 创建Canvas元素
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
                     
-                    // 设置Canvas尺寸
-                    const cardWidth = 220;
-                    const cardHeight = 180;
-                    const padding = 20;
-                    const cardsPerRow = Math.min(drawnCards.length, 3);
-                    const rows = Math.ceil(drawnCards.length / cardsPerRow);
+                    // 设置Canvas尺寸 - 根据质量选项增加分辨率
+                    const baseCardWidth = 300;
+                    const baseCardHeight = 420;
+                    const basePadding = 30;
+                    const baseFontSize = 20;
                     
-                    canvas.width = cardsPerRow * cardWidth + (cardsPerRow + 1) * padding;
-                    canvas.height = rows * cardHeight + (rows + 1) * padding + 80;
+                    const cardWidth = baseCardWidth * scaleFactor;
+                    const cardHeight = baseCardHeight * scaleFactor;
+                    const padding = basePadding * scaleFactor;
+                    const fontSize = baseFontSize * scaleFactor;
+                    
+                    // 计算布局
+                    const maxCardsPerRow = Math.min(drawnCards.length, 3);
+                    const rows = Math.ceil(drawnCards.length / maxCardsPerRow);
+                    
+                    canvas.width = maxCardsPerRow * cardWidth + (maxCardsPerRow + 1) * padding;
+                    canvas.height = rows * cardHeight + (rows + 1) * padding + 100 * scaleFactor;
+                    
+                    // 设置高质量渲染
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = 'high';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
                     
                     // 绘制背景
                     ctx.fillStyle = '#1a1a2e';
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
                     
+                    // 绘制渐变背景
+                    const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+                    gradient.addColorStop(0, '#1a1a2e');
+                    gradient.addColorStop(1, '#16213e');
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    
                     // 绘制标题
                     ctx.fillStyle = 'white';
-                    ctx.font = '24px Arial';
-                    ctx.textAlign = 'center';
-                    ctx.fillText('卡牌抽牌总览', canvas.width / 2, 30);
+                    ctx.font = `bold ${36 * scaleFactor}px Arial`;
+                    ctx.fillText('卡牌抽牌总览', canvas.width / 2, 50 * scaleFactor);
                     
                     // 绘制日期
                     const now = new Date();
-                    const dateStr = now.toLocaleDateString() + ' ' + now.toLocaleTimeString();
-                    ctx.font = '16px Arial';
-                    ctx.fillText(dateStr, canvas.width / 2, 60);
+                    const dateStr = now.toLocaleDateString('zh-CN') + ' ' + now.toLocaleTimeString('zh-CN');
+                    ctx.font = `bold ${fontSize}px Arial`;
+                    ctx.fillText(dateStr, canvas.width / 2, 80 * scaleFactor);
+                    
+                    // 绘制统计信息
+                    ctx.font = `${fontSize}px Arial`;
+                    ctx.fillText(`已抽取 ${drawnCards.length} 张卡牌`, canvas.width / 2, 110 * scaleFactor);
                     
                     // 加载所有卡牌图片
                     const imagePromises = drawnCards.map(drawnCard => {
@@ -665,14 +729,25 @@
                                 placeholder.width = cardWidth;
                                 placeholder.height = cardHeight;
                                 const placeholderCtx = placeholder.getContext('2d');
-                                placeholderCtx.fillStyle = '#6a11cb';
+                                
+                                // 绘制渐变背景
+                                const cardGradient = placeholderCtx.createLinearGradient(0, 0, cardWidth, cardHeight);
+                                cardGradient.addColorStop(0, '#6a11cb');
+                                cardGradient.addColorStop(1, '#2575fc');
+                                placeholderCtx.fillStyle = cardGradient;
                                 placeholderCtx.fillRect(0, 0, cardWidth, cardHeight);
+                                
+                                // 绘制卡牌编号
                                 placeholderCtx.fillStyle = 'white';
-                                placeholderCtx.font = 'bold 32px Arial';
+                                placeholderCtx.font = `bold ${60 * scaleFactor}px Arial`;
                                 placeholderCtx.textAlign = 'center';
-                                placeholderCtx.fillText(drawnCard.cardNumber.toString(), cardWidth / 2, cardHeight / 2);
-                                placeholderCtx.font = '14px Arial';
-                                placeholderCtx.fillText('图片加载失败', cardWidth / 2, cardHeight / 2 + 30);
+                                placeholderCtx.textBaseline = 'middle';
+                                placeholderCtx.fillText(drawnCard.cardNumber.toString(), cardWidth / 2, cardHeight / 2 - 30 * scaleFactor);
+                                
+                                // 绘制提示文字
+                                placeholderCtx.font = `${20 * scaleFactor}px Arial`;
+                                placeholderCtx.fillText('图片加载失败', cardWidth / 2, cardHeight / 2 + 30 * scaleFactor);
+                                
                                 resolve({img: placeholder, drawnCard});
                             };
                         });
@@ -685,43 +760,91 @@
                     let x, y;
                     for (let i = 0; i < loadedImages.length; i++) {
                         const {img, drawnCard} = loadedImages[i];
-                        const row = Math.floor(i / cardsPerRow);
-                        const col = i % cardsPerRow;
+                        const row = Math.floor(i / maxCardsPerRow);
+                        const col = i % maxCardsPerRow;
                         
                         x = padding + col * (cardWidth + padding);
-                        y = 80 + row * (cardHeight + padding);
+                        y = 140 * scaleFactor + row * (cardHeight + padding);
                         
-                        // 绘制卡牌图片
-                        ctx.drawImage(img, x, y, cardWidth, cardHeight);
+                        // 绘制卡牌阴影
+                        ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+                        ctx.shadowBlur = 20 * scaleFactor;
+                        ctx.shadowOffsetX = 0;
+                        ctx.shadowOffsetY = 10 * scaleFactor;
+                        
+                        // 绘制卡牌背景圆角矩形
+                        ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+                        roundRect(ctx, x, y, cardWidth, cardHeight, 20 * scaleFactor);
+                        
+                        // 计算图片裁剪和绘制参数 - 保持原始比例，裁剪左右两侧
+                        const imgAspectRatio = img.width / img.height;
+                        const targetAspectRatio = (cardWidth - 20 * scaleFactor) / (cardHeight - 60 * scaleFactor);
+                        
+                        let sourceX = 0;
+                        let sourceY = 0;
+                        let sourceWidth = img.width;
+                        let sourceHeight = img.height;
+                        
+                        if (imgAspectRatio > targetAspectRatio) {
+                            // 图片比目标区域宽，需要裁剪左右两侧
+                            sourceWidth = img.height * targetAspectRatio;
+                            sourceX = (img.width - sourceWidth) / 2;
+                        } else {
+                            // 图片比目标区域高，需要裁剪上下两侧
+                            sourceHeight = img.width / targetAspectRatio;
+                            sourceY = (img.height - sourceHeight) / 2;
+                        }
+                        
+                        // 绘制卡牌图片 - 使用裁剪方式保持比例
+                        ctx.shadowBlur = 0;
+                        ctx.shadowOffsetY = 0;
+                        roundRect(ctx, x + 10 * scaleFactor, y + 10 * scaleFactor, 
+                                 cardWidth - 20 * scaleFactor, cardHeight - 60 * scaleFactor, 
+                                 15 * scaleFactor);
+                        ctx.save();
+                        ctx.clip();
+                        
+                        ctx.drawImage(
+                            img, 
+                            sourceX, sourceY, sourceWidth, sourceHeight, // 源图像裁剪区域
+                            x + 10 * scaleFactor, y + 10 * scaleFactor,   // 目标位置
+                            cardWidth - 20 * scaleFactor, cardHeight - 60 * scaleFactor // 目标尺寸
+                        );
+                        
+                        ctx.restore();
                         
                         // 绘制卡牌边框
-                        ctx.strokeStyle = 'white';
-                        ctx.lineWidth = 2;
-                        ctx.strokeRect(x, y, cardWidth, cardHeight);
+                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                        ctx.lineWidth = 2 * scaleFactor;
+                        ctx.stroke();
+                        
+                        // 绘制卡牌信息背景
+                        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                        ctx.fillRect(x, y + cardHeight - 50 * scaleFactor, cardWidth, 50 * scaleFactor);
                         
                         // 绘制卡牌位置信息
                         ctx.fillStyle = 'white';
-                        ctx.font = '14px Arial';
-                        ctx.textAlign = 'center';
-                        ctx.fillText(`位置: ${drawnCard.position}`, x + cardWidth / 2, y + cardHeight - 30);
+                        ctx.font = `bold ${fontSize}px Arial`;
+                        ctx.fillText(`位置: ${drawnCard.position}`, x + cardWidth / 4, y + cardHeight - 25 * scaleFactor);
                         
                         // 绘制卡牌名称
                         const imageFileName = cardImageMap[drawnCard.cardNumber] || `card-${drawnCard.cardNumber}.jpg`;
                         const cardName = imageFileName.replace('.jpg', '');
+                        
                         // 如果名称太长，缩小字体
-                        const fontSize = cardName.length > 15 ? 12 : 16;
-                        ctx.font = `${fontSize}px Arial`;
-                        ctx.fillText(cardName, x + cardWidth / 2, y + cardHeight - 10);
+                        const nameFontSize = cardName.length > 15 ? fontSize * 0.8 : fontSize;
+                        ctx.font = `bold ${nameFontSize}px Arial`;
+                        ctx.fillText(cardName, x + cardWidth /1.5, y + cardHeight - 25 * scaleFactor);
                     }
                     
                     // 将Canvas转换为图片并下载
-                    const dataUrl = canvas.toDataURL('image/png');
+                    const dataUrl = canvas.toDataURL('image/png', 1.0);
                     const link = document.createElement('a');
-                    link.download = `card-summary-${Date.now()}.png`;
+                    link.download = `卡牌总览-${now.toLocaleDateString('zh-CN')}-${drawnCards.length}张.png`;
                     link.href = dataUrl;
                     link.click();
                     
-                    showToast('总览图已生成并开始下载');
+                    showToast('高清总览图已生成并开始下载');
                 } catch (e) {
                     console.error('生成总览图失败:', e);
                     showToast('生成总览图时出错，请重试');
@@ -729,6 +852,21 @@
                     // 隐藏加载提示
                     loadingElement.style.display = 'none';
                 }
+            }
+            
+            // 绘制圆角矩形辅助函数
+            function roundRect(ctx, x, y, width, height, radius) {
+                ctx.beginPath();
+                ctx.moveTo(x + radius, y);
+                ctx.lineTo(x + width - radius, y);
+                ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+                ctx.lineTo(x + width, y + height - radius);
+                ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+                ctx.lineTo(x + radius, y + height);
+                ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+                ctx.lineTo(x, y + radius);
+                ctx.quadraticCurveTo(x, y, x + radius, y);
+                ctx.closePath();
             }
             
             // 事件监听
